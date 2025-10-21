@@ -27,6 +27,11 @@
             cursor: pointer;
             filter: invert(0.5);
         }
+        .custom-select select {
+            appearance: none;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+        }
     </style>
 </head>
 <body class="bg-gray-50 font-sans min-h-screen p-4 sm:p-8">
@@ -63,21 +68,70 @@
             <h2 class="text-2xl font-semibold text-gray-800 mb-6 border-l-4 border-secondary pl-3">請假申請</h2>
             <form id="leaveForm" class="space-y-6">
 
-                <!-- 學生基本資料 -->
+                <!-- 學生基本資料 (座號改為下拉選單，並添加箭頭) -->
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
                         <label for="studentName" class="block text-sm font-medium text-gray-700 mb-1">學生姓名 <span class="text-red-500">*</span></label>
                         <input type="text" id="studentName" required
                             class="w-full p-3 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary">
                     </div>
-                    <div>
-                        <label for="classSeat" class="block text-sm font-medium text-gray-700 mb-1">班級 / 座號 (例如: 601 / 15)</label>
-                        <input type="text" id="classSeat"
-                            class="w-full p-3 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary"
-                            placeholder="選填，方便老師辨識">
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label for="classNumber" class="block text-sm font-medium text-gray-700 mb-1">班級 (例如: 601)</label>
+                            <input type="text" id="classNumber" placeholder="選填"
+                                class="w-full p-3 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary">
+                        </div>
+                        
+                        <!-- 座號下拉選單 (含箭頭) -->
+                        <div>
+                            <label for="seatNumber" class="block text-sm font-medium text-gray-700 mb-1">座號 <span class="text-red-500">*</span></label>
+                            <div class="relative custom-select">
+                                <select id="seatNumber" required
+                                    class="w-full p-3 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary bg-white text-sm">
+                                    <option value="" disabled selected>請選擇</option>
+                                    <!-- 座號 1 到 30 -->
+                                    <option value="1">1 號</option>
+                                    <option value="2">2 號</option>
+                                    <option value="3">3 號</option>
+                                    <option value="4">4 號</option>
+                                    <option value="5">5 號</option>
+                                    <option value="6">6 號</option>
+                                    <option value="7">7 號</option>
+                                    <option value="8">8 號</option>
+                                    <option value="9">9 號</option>
+                                    <option value="10">10 號</option>
+                                    <option value="11">11 號</option>
+                                    <option value="12">12 號</option>
+                                    <option value="13">13 號</option>
+                                    <option value="14">14 號</option>
+                                    <option value="15">15 號</option>
+                                    <option value="16">16 號</option>
+                                    <option value="17">17 號</option>
+                                    <option value="18">18 號</option>
+                                    <option value="19">19 號</option>
+                                    <option value="20">20 號</option>
+                                    <option value="21">21 號</option>
+                                    <option value="22">22 號</option>
+                                    <option value="23">23 號</option>
+                                    <option value="24">24 號</option>
+                                    <option value="25">25 號</option>
+                                    <option value="26">26 號</option>
+                                    <option value="27">27 號</option>
+                                    <option value="28">28 號</option>
+                                    <option value="29">29 號</option>
+                                    <option value="30">30 號</option>
+                                </select>
+                                <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
+                                    <!-- Down Arrow SVG Icon -->
+                                    <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
-
+                
                 <!-- 家長資料 -->
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
@@ -102,16 +156,24 @@
                         <div class="grid grid-cols-2 gap-2">
                             <input type="date" id="startDate" required
                                 class="w-full p-3 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary">
-                            <select id="startPeriod" required
-                                class="w-full p-3 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary appearance-none bg-white text-sm">
-                                <option value="1">第 1 節</option>
-                                <option value="2">第 2 節</option>
-                                <option value="3">第 3 節</option>
-                                <option value="4">第 4 節</option>
-                                <option value="5">第 5 節</option>
-                                <option value="6">第 6 節</option>
-                                <option value="7">第 7 節</option>
-                            </select>
+                            
+                            <div class="relative custom-select">
+                                <select id="startPeriod" required
+                                    class="w-full p-3 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary bg-white text-sm">
+                                    <option value="1">第 1 節</option>
+                                    <option value="2">第 2 節</option>
+                                    <option value="3">第 3 節</option>
+                                    <option value="4">第 4 節</option>
+                                    <option value="5">第 5 節</option>
+                                    <option value="6">第 6 節</option>
+                                    <option value="7">第 7 節</option>
+                                </select>
+                                <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
+                                    <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                                    </svg>
+                                </div>
+                            </div>
                         </div>
                     </div>
                     
@@ -121,18 +183,27 @@
                         <div class="grid grid-cols-2 gap-2">
                             <input type="date" id="endDate" required
                                 class="w-full p-3 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary">
-                            <select id="endPeriod" required
-                                class="w-full p-3 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary appearance-none bg-white text-sm">
-                                <option value="1">第 1 節</option>
-                                <option value="2">第 2 節</option>
-                                <option value="3">第 3 節</option>
-                                <option value="4">第 4 節</option>
-                                <option value="5">第 5 節</option>
-                                <option value="6">第 6 節</option>
-                                <option value="7" selected>第 7 節</option>
-                            </select>
+                            
+                            <div class="relative custom-select">
+                                <select id="endPeriod" required
+                                    class="w-full p-3 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary bg-white text-sm">
+                                    <option value="1">第 1 節</option>
+                                    <option value="2">第 2 節</option>
+                                    <option value="3">第 3 節</option>
+                                    <option value="4">第 4 節</option>
+                                    <option value="5">第 5 節</option>
+                                    <option value="6">第 6 節</option>
+                                    <option value="7" selected>第 7 節</option>
+                                </select>
+                                <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
+                                    <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                                    </svg>
+                                </div>
+                            </div>
                         </div>
                     </div>
+
 
                     <!-- Days Display (Read-Only) -->
                     <div id="daysDisplay" class="bg-indigo-50 p-3 rounded-lg flex flex-col justify-center">
@@ -148,18 +219,25 @@
                     </div>
                 </div>
 
-                <!-- 假別 -->
+                <!-- 假別 (下拉選單添加箭頭) -->
                 <div>
                     <label for="leaveType" class="block text-sm font-medium text-gray-700 mb-1">假別 <span class="text-red-500">*</span></label>
-                    <select id="leaveType" required
-                        class="w-full p-3 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary appearance-none bg-white">
-                        <option value="" disabled selected>請選擇假別</option>
-                        <option value="病假">🤒 病假</option>
-                        <option value="事假">💼 事假</option>
-                        <option value="喪假">🕯️ 喪假</option>
-                        <option value="公假">🏅 公假 (公務或代表學校)</option>
-                        <option value="特休">⛱️ 特殊休假 (其他)</option>
-                    </select>
+                    <div class="relative custom-select">
+                        <select id="leaveType" required
+                            class="w-full p-3 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary bg-white">
+                            <option value="" disabled selected>請選擇假別</option>
+                            <option value="病假">🤒 病假</option>
+                            <option value="事假">💼 事假</option>
+                            <option value="喪假">🕯️ 喪假</option>
+                            <option value="公假">🏅 公假 (公務或代表學校)</option>
+                            <option value="特休">⛱️ 特殊休假 (其他)</option>
+                        </select>
+                        <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
+                            <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                            </svg>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- 請假原因 -->
@@ -183,20 +261,29 @@
         <div id="leaveHistoryView" class="view-content hidden">
             <h2 class="text-2xl font-semibold text-gray-800 mb-6 border-l-4 border-secondary pl-3">請假紀錄查詢</h2>
             
-            <!-- 篩選器 -->
+            <!-- 篩選器 (下拉選單添加箭頭) -->
             <div class="mb-4 flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-4">
                 <input type="text" id="filterStudent" placeholder="依學生姓名或座號篩選..."
                     class="p-2 border border-gray-300 rounded-lg focus:ring-secondary focus:border-secondary flex-grow">
-                <select type="text" id="filterType"
-                    class="p-2 border border-gray-300 rounded-lg focus:ring-secondary focus:border-secondary appearance-none bg-white">
-                    <option value="">所有假別</option>
-                    <option value="病假">病假</option>
-                    <option value="事假">事假</option>
-                    <option value="喪假">喪假</option>
-                    <option value="公假">公假</option>
-                    <option value="特休">特殊休假</option>
-                </select>
+                
+                <div class="relative custom-select">
+                    <select type="text" id="filterType"
+                        class="p-2 border border-gray-300 rounded-lg focus:ring-secondary focus:border-secondary bg-white min-w-[150px]">
+                        <option value="">所有假別</option>
+                        <option value="病假">病假</option>
+                        <option value="事假">事假</option>
+                        <option value="喪假">喪假</option>
+                        <option value="公假">公假</option>
+                        <option value="特休">特殊休假</option>
+                    </select>
+                    <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
+                        <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                        </svg>
+                    </div>
+                </div>
             </div>
+
 
             <div class="overflow-x-auto shadow-md rounded-lg">
                 <table class="min-w-full divide-y divide-gray-200">
@@ -772,3 +859,4 @@
     </script>
 </body>
 </html>
+
