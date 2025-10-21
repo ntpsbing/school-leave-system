@@ -78,7 +78,7 @@
                     </div>
                     <div class="grid grid-cols-2 gap-3">
                         <div>
-                            <label for="classNumber" class="block text-sm font-medium text-gray-700 mb-1">班級 (例如: 608)</label>
+                            <label for="classNumber" class="block text-sm font-medium text-gray-700 mb-1">班級 (例如: 601)</label>
                             <input type="text" id="classNumber" placeholder="選填"
                                 class="w-full p-3 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary">
                         </div>
@@ -252,13 +252,13 @@
                         <label for="supportingDoc" class="block text-sm font-medium text-gray-700 mb-1">佐證資料上傳 (選填)</label>
                         <input type="file" id="supportingDoc" accept="image/*, .pdf"
                             class="w-full p-3 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary bg-white text-sm">
-                        <p class="text-xs text-gray-500 mt-1">支援圖片或 PDF 檔案。</p>
+                        <p class="text-xs text-gray-500 mt-1">支援圖片或 PDF 檔案。請勿上傳過大的檔案。</p>
                     </div>
                 </div>
 
                 <!-- 提交按鈕 -->
                 <div>
-                    <button type="submit"
+                    <button type="submit" id="submitBtn"
                         class="w-full bg-primary text-white py-3 px-6 rounded-lg font-semibold hover:bg-indigo-700 transition duration-150 shadow-md">
                         送出請假申請
                     </button>
@@ -277,11 +277,11 @@
                     class="col-span-2 sm:col-span-1 p-2 border border-gray-300 rounded-lg focus:ring-secondary focus:border-secondary">
 
                 <!-- 班級篩選 -->
-                <input type="text" id="filterClass" placeholder="班級 (例如: 608)"
+                <input type="text" id="filterClass" placeholder="班級 (例如: 601)"
                     class="p-2 border border-gray-300 rounded-lg focus:ring-secondary focus:border-secondary">
 
                 <!-- 座號篩選 -->
-                <input type="text" id="filterSeat" placeholder="座號 (例如: 1)"
+                <input type="text" id="filterSeat" placeholder="座號 (例如: 15)"
                     class="p-2 border border-gray-300 rounded-lg focus:ring-secondary focus:border-secondary">
 
                 <!-- 假別下拉選單 -->
@@ -382,11 +382,18 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        // 匯入 deleteDoc
-        import { getFirestore, collection, addDoc, onSnapshot, query, deleteDoc, doc, orderBy, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, onSnapshot, query, deleteDoc, doc, orderBy, setLogLevel, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        // 匯入 Firebase Storage 相關函數
+        import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
 
-        // 設定 Firebase 全域變數，包含 deleteDoc 和 doc
-        window.firebase = { initializeApp, getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged, getFirestore, collection, addDoc, onSnapshot, query, deleteDoc, doc, orderBy, setLogLevel };
+
+        // 設定 Firebase 全域變數
+        window.firebase = { 
+            initializeApp, getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged, 
+            getFirestore, collection, addDoc, onSnapshot, query, deleteDoc, doc, orderBy, setLogLevel, updateDoc,
+            // 新增 Storage 相關函數
+            getStorage, ref, uploadBytes, getDownloadURL
+        };
     </script>
 
     <script>
@@ -423,19 +430,16 @@
                   appId: "1:670531005041:web:4ec05a8a9c78f5b00489d0",
                   measurementId: "G-9L26WH30Q7"
                 };
-                
                 // =================================================================================
             }
         } catch (e) {
             console.error("安全檢查 Canvas 全域變數時發生錯誤 (可能是 __firebase_config 解析失敗):", e);
         }
         
-        // 部署至網頁時，如果上方未提供 projectId，這裡的 COLLECTION_PATH 可能會指向錯誤路徑。
-        // 請確保您貼上的 firebaseConfig 中包含 projectId，或者將此路徑簡化為 'leave_requests'
         const COLLECTION_PATH = `/artifacts/${appId}/public/data/leave_requests`;
 
-        // 設定全域變數
-        let db, auth, userId = null;
+        // 新增 storage 變數
+        let db, auth, storage, userId = null;
         let isAuthReady = false;
         let leaveRecords = []; // 儲存所有請假紀錄
 
@@ -612,6 +616,8 @@
                 const app = firebase.initializeApp(firebaseConfig);
                 db = firebase.getFirestore(app);
                 auth = firebase.getAuth(app);
+                // ⭐️ 初始化 Firebase Storage 服務
+                storage = firebase.getStorage(app); 
                 
                 // 啟用 Firestore Debug 模式 (可選)
                 firebase.setLogLevel('debug');
@@ -752,14 +758,22 @@
         /** 處理表單提交 */
         async function handleFormSubmit(e) {
             e.preventDefault();
-            if (!isAuthReady || !db) {
+            const submitBtn = document.getElementById('submitBtn');
+
+            if (!isAuthReady || !db || !storage) {
                 showMessage("系統仍在初始化中，請稍候再試。", 'error');
                 return;
             }
+            
+            // 鎖定按鈕避免重複提交
+            submitBtn.disabled = true;
+            submitBtn.textContent = '處理中... 請稍候';
+            submitBtn.classList.remove('hover:bg-indigo-700');
+            submitBtn.classList.add('opacity-50', 'cursor-not-allowed');
+
 
             const studentName = document.getElementById('studentName').value.trim();
             const parentName = document.getElementById('parentName').value.trim();
-            // 修正: 讀取班級和座號的新欄位
             const classNumber = document.getElementById('classNumber').value.trim();
             const seatNumber = document.getElementById('seatNumber').value.trim(); 
 
@@ -769,21 +783,12 @@
             const endDate = document.getElementById('endDate').value;
             const endPeriod = parseInt(document.getElementById('endPeriod').value);
             
-            // 再次計算天數，確保提交的值是最終正確的值
             const days = calculateDays(startDate, startPeriod, endDate, endPeriod);
             const leaveType = document.getElementById('leaveType').value;
             const reason = document.getElementById('reason').value.trim();
             
             // 獲取佐證文件
             const supportingFile = document.getElementById('supportingDoc').files[0];
-            let fileMetadata = '無佐證文件';
-
-            if (supportingFile) {
-                // 記錄文件元數據，但不實際執行上傳操作
-                fileMetadata = `檔案名稱: ${supportingFile.name}, 類型: ${supportingFile.type || '未知'}, 大小: ${(supportingFile.size / 1024 / 1024).toFixed(2)} MB`;
-                console.warn("⚠️ 注意：在當前單一檔案環境中，佐證文件並未實際儲存至 Firebase Storage。只有文件元數據被記錄。");
-            }
-
 
             // 組合班級/座號字串，用於紀錄顯示
             const classSeatCombined = classNumber 
@@ -793,6 +798,10 @@
 
             // 驗證
             if (!studentName || !parentName || !startDate || !endDate || days <= 0 || !leaveType || !reason || !seatNumber) {
+                submitBtn.disabled = false;
+                submitBtn.textContent = '送出請假申請';
+                submitBtn.classList.add('hover:bg-indigo-700');
+                submitBtn.classList.remove('opacity-50', 'cursor-not-allowed');
                 showMessage("請填寫所有必填欄位 (學生姓名、座號、家長姓名、日期、假別和原因)。", 'error');
                 return;
             }
@@ -801,18 +810,21 @@
             const start = new Date(startDate.replace(/-/g, '/'));
             const end = new Date(endDate.replace(/-/g, '/'));
             if (end.getTime() < start.getTime() || (end.getTime() === start.getTime() && endPeriod < startPeriod)) {
+                 submitBtn.disabled = false;
+                 submitBtn.textContent = '送出請假申請';
+                 submitBtn.classList.add('hover:bg-indigo-700');
+                 submitBtn.classList.remove('opacity-50', 'cursor-not-allowed');
                  showMessage("日期或節數選擇範圍無效，請檢查起始時間是否晚於結束時間。", 'error');
                  return;
             }
 
-
+            // 1. 準備初始資料 (supportingDocUrl 暫時為 null)
             const leaveData = {
                 studentName,
                 parentName,
-                // 使用組合後的字串存入 classSeat 欄位
                 classSeat: classSeatCombined, 
-                classNumber: classNumber, // 儲存班級號碼 (用於過濾)
-                seatNumber: seatNumber,   // 儲存座號 (用於過濾)
+                classNumber: classNumber, 
+                seatNumber: seatNumber,   
                 contactPhone: contactPhone || 'N/A',
                 startDate,
                 startPeriod, 
@@ -821,16 +833,47 @@
                 days, 
                 type: leaveType,
                 reason,
-                supportingDocInfo: fileMetadata, // 儲存文件元數據
+                supportingDocUrl: null, // ⭐️ 初始設定為 null
                 submitterId: userId,
                 timestamp: new Date(),
             };
 
             try {
-                // 將請假資料寫入 Firestore
-                await firebase.addDoc(firebase.collection(db, COLLECTION_PATH), leaveData);
+                // 2. Add the initial document to Firestore to get the ID
+                const docRef = await firebase.addDoc(firebase.collection(db, COLLECTION_PATH), leaveData);
+                const recordId = docRef.id;
+
+                let successMessage = `✅ 提交成功！已為 ${studentName} 提交 ${days} 天的 ${leaveType} 申請。`;
+
+                // 3. Handle File Upload (if file exists)
+                if (supportingFile && storage) {
+                    const fileExtension = supportingFile.name.split('.').pop();
+                    // 建議 Storage 路徑: leave_documents/{文件ID}.{副檔名}
+                    const storagePath = `leave_documents/${recordId}.${fileExtension}`;
+                    const storageRef = firebase.ref(storage, storagePath);
+            
+                    // Upload the file
+                    const snapshot = await firebase.uploadBytes(storageRef, supportingFile);
+                    
+                    // Get the public download URL
+                    const downloadURL = await firebase.getDownloadURL(snapshot.ref);
+
+                    // Update the Firestore document with the URL
+                    await firebase.updateDoc(firebase.doc(db, COLLECTION_PATH, recordId), {
+                        supportingDocUrl: downloadURL
+                    });
+                    
+                    successMessage = `✅ 提交成功！已為 ${studentName} 提交 ${days} 天的 ${leaveType} 申請，佐證資料已上傳。`;
+                }
+
+                showMessage(successMessage);
                 
-                showMessage(`✅ 提交成功！已為 ${studentName} 提交 ${days} 天的 ${leaveType} 申請。`);
+                // 恢復按鈕狀態
+                submitBtn.disabled = false;
+                submitBtn.textContent = '送出請假申請';
+                submitBtn.classList.add('hover:bg-indigo-700');
+                submitBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+
                 leaveForm.reset(); // 清空表單
                 
                 // 重設日期/節數為今天 P1-P7，並重新計算天數 (1天)
@@ -845,7 +888,20 @@
 
             } catch (error) {
                 console.error("提交請假申請失敗:", error);
-                showMessage("提交失敗：網路錯誤或資料庫問題。", 'error');
+                
+                // 恢復按鈕狀態
+                submitBtn.disabled = false;
+                submitBtn.textContent = '送出請假申請';
+                submitBtn.classList.add('hover:bg-indigo-700');
+                submitBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+
+                if (error.code && error.code.includes('storage/unauthorized')) {
+                    showMessage("提交失敗：Storage 權限不足，請檢查 Firebase Storage 規則是否允許匿名寫入。", 'error');
+                } else if (error.code && error.code.includes('quota-exceeded')) {
+                    showMessage("提交失敗：Storage 容量已滿或超出限制，請聯絡管理員。", 'error');
+                } else {
+                    showMessage(`提交失敗：網路錯誤或資料庫問題 (${error.message})。`, 'error');
+                }
             }
         }
         
@@ -854,15 +910,14 @@
         // -------------------------------------------------------------------------
 
         const filterStudentInput = document.getElementById('filterStudent');
-        // 新增篩選器 DOM 引用
         const filterClassInput = document.getElementById('filterClass');
         const filterSeatInput = document.getElementById('filterSeat');
         const filterTypeSelect = document.getElementById('filterType');
 
         // 註冊所有篩選輸入的事件監聽器
         filterStudentInput.addEventListener('input', renderHistoryTable);
-        filterClassInput.addEventListener('input', renderHistoryTable); // 監聽班級輸入
-        filterSeatInput.addEventListener('input', renderHistoryTable);   // 監聽座號輸入
+        filterClassInput.addEventListener('input', renderHistoryTable); 
+        filterSeatInput.addEventListener('input', renderHistoryTable);   
         filterTypeSelect.addEventListener('change', renderHistoryTable);
 
         /**
@@ -874,8 +929,8 @@
             
             // 獲取所有篩選條件的值
             const studentFilter = filterStudentInput.value.toLowerCase().trim();
-            const classFilter = filterClassInput.value.trim(); // e.g., '601'
-            const seatFilter = filterSeatInput.value.trim();   // e.g., '15'
+            const classFilter = filterClassInput.value.trim(); 
+            const seatFilter = filterSeatInput.value.trim();   
             const typeFilter = filterTypeSelect.value;
 
             // 1. 過濾資料
@@ -889,7 +944,6 @@
                 const classMatch = !classFilter || recordClass.includes(classFilter);
                 
                 // 座號篩選 (精確或部分匹配)
-                // 由於座號是數字，如果用戶輸入 '1'，會匹配 '1' 和 '10' 到 '19'。
                 const recordSeat = record.seatNumber || ''; 
                 const seatMatch = !seatFilter || recordSeat.includes(seatFilter);
                 
@@ -949,10 +1003,13 @@
                 else if (record.type === '事假') typeColor = 'bg-yellow-100 text-yellow-700';
                 else if (record.type === '公假') typeColor = 'bg-blue-100 text-blue-700';
                 
-                // 佐證文件狀態標記
+                // ⭐️ 佐證文件狀態標記 (現在是連結)
                 let fileStatusBadge = '<span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-600">無文件</span>';
-                if (record.supportingDocInfo && record.supportingDocInfo !== '無佐證文件') {
-                    fileStatusBadge = '<span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-700">✅ 已上傳元數據</span>';
+                if (record.supportingDocUrl) {
+                    fileStatusBadge = `
+                        <a href="${record.supportingDocUrl}" target="_blank" class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-700 hover:bg-green-200 transition duration-150 shadow-sm ring-1 ring-green-500/50">
+                            🔗 點擊查看
+                        </a>`;
                 }
 
                 // 刪除按鈕
@@ -1034,10 +1091,9 @@
         // 讓全域函數可以在 HTML 標籤中被調用
         window.switchView = switchView; 
         window.checkPassword = checkPassword;
-        window.showDeleteConfirm = showDeleteConfirm; // 新增
-        window.confirmDeletion = confirmDeletion;     // 新增
+        window.showDeleteConfirm = showDeleteConfirm; 
+        window.confirmDeletion = confirmDeletion;     
         
     </script>
 </body>
 </html>
-
