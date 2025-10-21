@@ -259,6 +259,31 @@
     </script>
 
     <script>
+        // ---------------------------------------------------------------------
+        // 修正: 確保在任何環境下，相關變數都被安全地定義
+        // ---------------------------------------------------------------------
+
+        // 檢查 Canvas 專屬變數是否存在，如果不存在則給予預設或 null 值
+        const isCanvasEnvironment = typeof __app_id !== 'undefined';
+
+        const firebaseConfig = isCanvasEnvironment
+            ? JSON.parse(__firebase_config)
+            : { 
+                  apiKey: "AIzaSyCl-aa5JZvfjgKNCu1h1wQaQkOSkQ8GCTs",
+                  authDomain: "student-leave-system-97560.firebaseapp.com",
+                  projectId: "student-leave-system-97560",
+                  storageBucket: "student-leave-system-97560.firebasestorage.app",
+                  messagingSenderId: "670531005041",
+                  appId: "1:670531005041:web:4ec05a8a9c78f5b00489d0",
+                  measurementId: "G-9L26WH30Q7"
+           }; 
+
+        const initialAuthToken = isCanvasEnvironment ? __initial_auth_token : null;
+        // 使用三元運算符安全讀取，避免 ReferenceError
+        const appId = isCanvasEnvironment ? __app_id : 'default-app-id';
+
+        const COLLECTION_PATH = `/artifacts/${appId}/public/data/leave_requests`;
+
         // 設定全域變數
         let db, auth, userId = null;
         let isAuthReady = false;
@@ -271,29 +296,6 @@
         const loadingIndicator = document.getElementById('loadingIndicator');
         const appContainer = document.getElementById('appContainer');
         const messageBox = document.getElementById('messageBox');
-
-        // ---------------------------------------------------------------------
-        // 從 Canvas 環境取得 Firebase 配置與認證資訊 (已修正為自動讀取)
-        // ---------------------------------------------------------------------
-        // 確保在 Canvas 之外也能執行 (提供預設值)
-        const firebaseConfig = {
-          apiKey: "AIzaSyCl-aa5JZvfjgKNCu1h1wQaQkOSkQ8GCTs",
-          authDomain: "student-leave-system-97560.firebaseapp.com",
-          projectId: "student-leave-system-97560",
-          storageBucket: "student-leave-system-97560.firebasestorage.app",
-          messagingSenderId: "670531005041",
-          appId: "1:670531005041:web:4ec05a8a9c78f5b00489d0",
-          measurementId: "G-9L26WH30Q7"
-        };
-
-        if (!firebaseConfig) {
-            console.error("Firebase 配置遺失。請確保程式碼在支援的環境中運行或手動提供配置。");
-            document.getElementById('loadingIndicator').innerHTML = '<div class="text-xl font-semibold text-red-600">錯誤：Firebase 配置遺失！請檢查主控台並提供自己的配置。</div>';
-            // 由於配置缺失，無法繼續執行
-            // 顯示錯誤後，不進行後續初始化
-        }
-        
-        const COLLECTION_PATH = `/artifacts/${appId}/public/data/leave_requests`;
 
         // =========================================================================
         // 輔助函數
@@ -441,11 +443,12 @@
 
         /** 初始化 Firebase */
         async function initializeFirebase() {
-            // 如果 firebaseConfig 已經判斷為 null (在配置讀取區塊)，則不再嘗試初始化
-            if (!firebaseConfig) {
-                // 強制顯示應用程式容器，即使是錯誤狀態
+            // 檢查 Firebase 配置是否為空物件 (如果不是在 Canvas 環境且使用者未提供配置)
+            if (Object.keys(firebaseConfig).length === 0 && !isCanvasEnvironment) {
+                console.error("Firebase 配置遺失。請確保程式碼在支援的環境中運行或手動提供配置。");
+                loadingIndicator.classList.add('hidden');
                 appContainer.classList.remove('opacity-0');
-                // 由於配置缺失，不需要進一步初始化
+                showMessage('錯誤：Firebase 配置遺失。請在程式碼中貼上您的 Firebase JSON 配置。', 'error');
                 return;
             }
 
@@ -458,7 +461,7 @@
                 // 啟用 Firestore Debug 模式 (可選)
                 firebase.setLogLevel('debug');
 
-                // 根據環境提供的 Token 進行認證，如果沒有則使用匿名登入 (已修正)
+                // 根據環境提供的 Token 進行認證，如果沒有則使用匿名登入
                 if (initialAuthToken) {
                     await firebase.signInWithCustomToken(auth, initialAuthToken);
                     console.log("使用自訂 Token 登入成功。");
@@ -518,7 +521,8 @@
                 renderHistoryTable();
             }, (error) => {
                 console.error("監聽請假紀錄失敗:", error);
-                showMessage("無法載入紀錄，請檢查網路連線或資料庫規則。", 'error');
+                // 由於認證已經成功，這裡的錯誤多半是規則問題 (Permission Denied)
+                showMessage("無法載入紀錄，請檢查網路連線或資料庫規則 (可能是 Permission Denied)。", 'error');
             });
         }
         
