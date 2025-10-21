@@ -27,6 +27,7 @@
             cursor: pointer;
             filter: invert(0.5);
         }
+        /* 隱藏原生下拉箭頭，以使用自訂箭頭 */
         .custom-select select {
             appearance: none;
             -webkit-appearance: none;
@@ -131,7 +132,7 @@
                         </div>
                     </div>
                 </div>
-                
+
                 <!-- 家長資料 -->
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
@@ -147,7 +148,7 @@
                     </div>
                 </div>
 
-                <!-- 請假日期與天數 (起始日/節數 與 結束日/節數 決定天數) -->
+                <!-- 請假日期與節數 (下拉選單添加箭頭) -->
                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
                     
                     <!-- Start Date/Period Group -->
@@ -204,7 +205,6 @@
                         </div>
                     </div>
 
-
                     <!-- Days Display (Read-Only) -->
                     <div id="daysDisplay" class="bg-indigo-50 p-3 rounded-lg flex flex-col justify-center">
                         <label class="block text-sm font-medium text-primary mb-1">請假天數 (自動計算)</label>
@@ -240,11 +240,20 @@
                     </div>
                 </div>
 
-                <!-- 請假原因 -->
-                <div>
-                    <label for="reason" class="block text-sm font-medium text-gray-700 mb-1">請假原因描述 <span class="text-red-500">*</span></label>
-                    <textarea id="reason" rows="4" required
-                        class="w-full p-3 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary"></textarea>
+                <!-- 請假原因 & 佐證資料上傳 -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label for="reason" class="block text-sm font-medium text-gray-700 mb-1">請假原因描述 <span class="text-red-500">*</span></label>
+                        <textarea id="reason" rows="4" required
+                            class="w-full p-3 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary"></textarea>
+                    </div>
+
+                    <div>
+                        <label for="supportingDoc" class="block text-sm font-medium text-gray-700 mb-1">佐證資料上傳 (選填)</label>
+                        <input type="file" id="supportingDoc" accept="image/*, .pdf"
+                            class="w-full p-3 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary bg-white text-sm">
+                        <p class="text-xs text-gray-500 mt-1">支援圖片或 PDF 檔案。</p>
+                    </div>
                 </div>
 
                 <!-- 提交按鈕 -->
@@ -261,14 +270,24 @@
         <div id="leaveHistoryView" class="view-content hidden">
             <h2 class="text-2xl font-semibold text-gray-800 mb-6 border-l-4 border-secondary pl-3">請假紀錄查詢</h2>
             
-            <!-- 篩選器 (下拉選單添加箭頭) -->
-            <div class="mb-4 flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-4">
-                <input type="text" id="filterStudent" placeholder="依學生姓名或座號篩選..."
-                    class="p-2 border border-gray-300 rounded-lg focus:ring-secondary focus:border-secondary flex-grow">
-                
-                <div class="relative custom-select">
+            <!-- 篩選器 (已更新為包含班級和座號) -->
+            <div class="mb-4 grid grid-cols-2 sm:grid-cols-5 gap-3">
+                <!-- 學生姓名/座號關鍵字 -->
+                <input type="text" id="filterStudent" placeholder="依姓名篩選"
+                    class="col-span-2 sm:col-span-1 p-2 border border-gray-300 rounded-lg focus:ring-secondary focus:border-secondary">
+
+                <!-- 班級篩選 -->
+                <input type="text" id="filterClass" placeholder="班級 (例如: 601)"
+                    class="p-2 border border-gray-300 rounded-lg focus:ring-secondary focus:border-secondary">
+
+                <!-- 座號篩選 -->
+                <input type="text" id="filterSeat" placeholder="座號 (例如: 15)"
+                    class="p-2 border border-gray-300 rounded-lg focus:ring-secondary focus:border-secondary">
+
+                <!-- 假別下拉選單 -->
+                <div class="relative custom-select col-span-2 sm:col-span-1">
                     <select type="text" id="filterType"
-                        class="p-2 border border-gray-300 rounded-lg focus:ring-secondary focus:border-secondary bg-white min-w-[150px]">
+                        class="p-2 border border-gray-300 rounded-lg focus:ring-secondary focus:border-secondary bg-white w-full">
                         <option value="">所有假別</option>
                         <option value="病假">病假</option>
                         <option value="事假">事假</option>
@@ -284,7 +303,6 @@
                 </div>
             </div>
 
-
             <div class="overflow-x-auto shadow-md rounded-lg">
                 <table class="min-w-full divide-y divide-gray-200">
                     <thead class="bg-primary/90 text-white">
@@ -295,13 +313,16 @@
                             <th scope="col" class="px-3 py-3 text-left text-xs font-medium uppercase tracking-wider">假別</th>
                             <th scope="col" class="px-3 py-3 text-left text-xs font-medium uppercase tracking-wider hidden sm:table-cell">家長</th>
                             <th scope="col" class="px-3 py-3 text-left text-xs font-medium uppercase tracking-wider">原因摘要</th>
+                            <th scope="col" class="px-3 py-3 text-left text-xs font-medium uppercase tracking-wider">佐證</th>
                             <th scope="col" class="px-3 py-3 text-left text-xs font-medium uppercase tracking-wider">提交時間</th>
+                            <!-- 新增的操作欄位 -->
+                            <th scope="col" class="px-3 py-3 text-left text-xs font-medium uppercase tracking-wider">操作</th>
                         </tr>
                     </thead>
                     <tbody id="historyTableBody" class="bg-white divide-y divide-gray-200">
                         <!-- 紀錄將由 JS 載入 -->
                         <tr>
-                            <td colspan="7" class="px-6 py-4 text-center text-gray-500">
+                            <td colspan="9" class="px-6 py-4 text-center text-gray-500">
                                 載入請假紀錄中...
                             </td>
                         </tr>
@@ -334,28 +355,66 @@
             </div>
         </div>
     </div>
+    
+    <!-- 刪除二次確認 Modal (新增) -->
+    <div id="deleteConfirmModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="bg-white p-8 rounded-xl shadow-2xl w-full max-w-lg">
+            <h3 class="text-xl font-bold mb-4 text-red-600">⚠️ 確認刪除請假紀錄？</h3>
+            <p id="deleteRecordDetails" class="text-gray-700 mb-6 leading-relaxed">
+                您確定要刪除這筆紀錄嗎？此操作無法復原。
+            </p>
+            <input type="hidden" id="recordIdToDelete">
+            <div class="flex justify-end space-x-3">
+                <button onclick="document.getElementById('deleteConfirmModal').classList.add('hidden')"
+                        class="px-4 py-2 text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 transition duration-150">
+                    取消
+                </button>
+                <button onclick="confirmDeletion()"
+                        class="px-4 py-2 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 transition duration-150">
+                    確認刪除
+                </button>
+            </div>
+        </div>
+    </div>
+
 
     <!-- Firebase Imports -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        // 匯入 deleteDoc
+        import { getFirestore, collection, addDoc, onSnapshot, query, deleteDoc, doc, orderBy, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // 設定 Firebase 全域變數
-        window.firebase = { initializeApp, getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged, getFirestore, collection, addDoc, onSnapshot, query, orderBy, setLogLevel };
+        // 設定 Firebase 全域變數，包含 deleteDoc 和 doc
+        window.firebase = { initializeApp, getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged, getFirestore, collection, addDoc, onSnapshot, query, deleteDoc, doc, orderBy, setLogLevel };
     </script>
 
     <script>
         // ---------------------------------------------------------------------
-        // 修正: 確保在任何環境下，相關變數都被安全地定義
+        // 確保在任何環境下，相關變數都被安全地定義 (針對 ReferenceError)
         // ---------------------------------------------------------------------
 
-        // 檢查 Canvas 專屬變數是否存在，如果不存在則給予預設或 null 值
-        const isCanvasEnvironment = typeof __app_id !== 'undefined';
-
-        const firebaseConfig = isCanvasEnvironment
-            ? JSON.parse(__firebase_config)
-            : { 
+        let firebaseConfig = {};
+        let initialAuthToken = null;
+        let appId = 'default-app-id'; // 預設安全值
+        
+        // 使用 try-catch 塊來安全地訪問 Canvas 全域變數
+        try {
+            // 檢查關鍵的全域變數 __app_id 是否存在 (此區塊用於 Canvas 環境自動設定)
+            if (typeof __app_id !== 'undefined') {
+                appId = __app_id;
+                
+                // 必須檢查 __firebase_config，否則 JSON.parse(undefined) 會失敗
+                if (typeof __firebase_config !== 'undefined') {
+                    firebaseConfig = JSON.parse(__firebase_config);
+                }
+                
+                if (typeof __initial_auth_token !== 'undefined') {
+                    initialAuthToken = __initial_auth_token;
+                }
+            } else {
+                // =============== 部署至網頁時，請將您的 Firebase 配置貼到下方 (選填) ===============
+                 firebaseConfig = {
                   apiKey: "AIzaSyCl-aa5JZvfjgKNCu1h1wQaQkOSkQ8GCTs",
                   authDomain: "student-leave-system-97560.firebaseapp.com",
                   projectId: "student-leave-system-97560",
@@ -363,12 +422,16 @@
                   messagingSenderId: "670531005041",
                   appId: "1:670531005041:web:4ec05a8a9c78f5b00489d0",
                   measurementId: "G-9L26WH30Q7"
-           }; 
-
-        const initialAuthToken = isCanvasEnvironment ? __initial_auth_token : null;
-        // 使用三元運算符安全讀取，避免 ReferenceError
-        const appId = isCanvasEnvironment ? __app_id : 'default-app-id';
-
+                };
+                
+                // =================================================================================
+            }
+        } catch (e) {
+            console.error("安全檢查 Canvas 全域變數時發生錯誤 (可能是 __firebase_config 解析失敗):", e);
+        }
+        
+        // 部署至網頁時，如果上方未提供 projectId，這裡的 COLLECTION_PATH 可能會指向錯誤路徑。
+        // 請確保您貼上的 firebaseConfig 中包含 projectId，或者將此路徑簡化為 'leave_requests'
         const COLLECTION_PATH = `/artifacts/${appId}/public/data/leave_requests`;
 
         // 設定全域變數
@@ -406,6 +469,11 @@
             setTimeout(() => {
                 messageBox.classList.add('hidden');
             }, 8000); // 延長錯誤訊息顯示時間
+
+            // 確保錯誤訊息在 console 中可見
+            if (type === 'error') {
+                 console.error("用戶介面錯誤訊息:", message);
+            }
         }
 
         /**
@@ -456,7 +524,7 @@
                 totalDays += startDayPeriods / P_TOTAL;
 
                 // 結束日分數 (從 P1 到 endPeriod)
-                // 期間數: endPeriod
+                // 期間數: endDayPeriods
                 const endDayPeriods = endPeriod;
                 totalDays += endDayPeriods / P_TOTAL;
             }
@@ -531,11 +599,11 @@
         /** 初始化 Firebase */
         async function initializeFirebase() {
             // 檢查 Firebase 配置是否為空物件 (如果不是在 Canvas 環境且使用者未提供配置)
-            if (Object.keys(firebaseConfig).length === 0 && !isCanvasEnvironment) {
+            if (Object.keys(firebaseConfig).length === 0 && appId === 'default-app-id') {
                 console.error("Firebase 配置遺失。請確保程式碼在支援的環境中運行或手動提供配置。");
                 loadingIndicator.classList.add('hidden');
                 appContainer.classList.remove('opacity-0');
-                showMessage('錯誤：Firebase 配置遺失。請在程式碼中貼上您的 Firebase JSON 配置。', 'error');
+                showMessage('錯誤：Firebase 配置遺失。請在程式碼中貼上您的配置。', 'error');
                 return;
             }
 
@@ -565,6 +633,7 @@
                         // 認證完成後，開始監聽資料
                         listenForLeaveRequests();
                     } else {
+                        // 雖然我們主要使用匿名登入，但仍確保 userId 被清除
                         userId = null;
                         document.getElementById('currentUserId').textContent = '未登入';
                         isAuthReady = true;
@@ -587,7 +656,8 @@
         function listenForLeaveRequests() {
             if (!isAuthReady || !db) return;
 
-            const q = firebase.query(firebase.collection(db, COLLECTION_PATH));
+            // 這裡不使用 orderBy，避免索引錯誤。我們在客戶端進行排序。
+            const q = firebase.query(firebase.collection(db, COLLECTION_PATH)); 
             
             // 使用 onSnapshot 監聽即時更新
             firebase.onSnapshot(q, (snapshot) => {
@@ -596,8 +666,7 @@
                     // 將資料與文件 ID 存入陣列
                     leaveRecords.push({ id: doc.id, ...doc.data() });
                 });
-                // 將紀錄按提交時間倒序排列 (注意：Firestore 建議在伺服器端排序，但這裡為了簡化仍使用客戶端排序)
-                // 由於 Firestore 的 timestamp 是一個物件，我們需要使用 toDate() 轉換
+                // 在客戶端對紀錄按提交時間倒序排列
                 leaveRecords.sort((a, b) => {
                     const dateA = a.timestamp && a.timestamp.toDate ? a.timestamp.toDate().getTime() : 0;
                     const dateB = b.timestamp && b.timestamp.toDate ? b.timestamp.toDate().getTime() : 0;
@@ -608,7 +677,6 @@
                 renderHistoryTable();
             }, (error) => {
                 console.error("監聽請假紀錄失敗:", error);
-                // 由於認證已經成功，這裡的錯誤多半是規則問題 (Permission Denied)
                 showMessage("無法載入紀錄，請檢查網路連線或資料庫規則 (可能是 Permission Denied)。", 'error');
             });
         }
@@ -652,14 +720,14 @@
 
                 if (end.getTime() < start.getTime()) {
                     // 結束日期早於起始日期
-                    showMessage("結束日期不能早於起始日期，已自動修正結束日期。", 'error');
+                    console.warn("結束日期不能早於起始日期，已自動修正結束日期。");
                     endDateInput.value = startDate; // 強制設定結束日為起始日
                     // 重新計算，使用修正後的日期
                     calculatedDays = calculateDays(startDate, startPeriod, startDate, endPeriod);
                     daysInput.value = calculatedDays;
                 } else if (end.getTime() === start.getTime() && endPeriod < startPeriod) {
                     // 同一天內，結束節數早於起始節數
-                    showMessage("同一天內，結束節數不能早於起始節數，已自動修正結束節數。", 'error');
+                    console.warn("同一天內，結束節數不能早於起始節數，已自動修正結束節數。");
                     endPeriodInput.value = startPeriodInput.value; // 強制設定結束節數為起始節數
                     // 重新計算
                     calculatedDays = calculateDays(startDate, startPeriod, endDate, startPeriod);
@@ -691,7 +759,10 @@
 
             const studentName = document.getElementById('studentName').value.trim();
             const parentName = document.getElementById('parentName').value.trim();
-            const classSeat = document.getElementById('classSeat').value.trim();
+            // 修正: 讀取班級和座號的新欄位
+            const classNumber = document.getElementById('classNumber').value.trim();
+            const seatNumber = document.getElementById('seatNumber').value.trim(); 
+
             const contactPhone = document.getElementById('contactPhone').value.trim();
             const startDate = document.getElementById('startDate').value;
             const startPeriod = parseInt(document.getElementById('startPeriod').value);
@@ -703,9 +774,26 @@
             const leaveType = document.getElementById('leaveType').value;
             const reason = document.getElementById('reason').value.trim();
             
+            // 獲取佐證文件
+            const supportingFile = document.getElementById('supportingDoc').files[0];
+            let fileMetadata = '無佐證文件';
+
+            if (supportingFile) {
+                // 記錄文件元數據，但不實際執行上傳操作
+                fileMetadata = `檔案名稱: ${supportingFile.name}, 類型: ${supportingFile.type || '未知'}, 大小: ${(supportingFile.size / 1024 / 1024).toFixed(2)} MB`;
+                console.warn("⚠️ 注意：在當前單一檔案環境中，佐證文件並未實際儲存至 Firebase Storage。只有文件元數據被記錄。");
+            }
+
+
+            // 組合班級/座號字串，用於紀錄顯示
+            const classSeatCombined = classNumber 
+                ? `${classNumber} 班 / ${seatNumber} 號` 
+                : `${seatNumber} 號 (未填班級)`;
+
+
             // 驗證
-            if (!studentName || !parentName || !startDate || !endDate || days <= 0 || !leaveType || !reason) {
-                showMessage("請填寫所有必填欄位並確保請假天數大於零。", 'error');
+            if (!studentName || !parentName || !startDate || !endDate || days <= 0 || !leaveType || !reason || !seatNumber) {
+                showMessage("請填寫所有必填欄位 (學生姓名、座號、家長姓名、日期、假別和原因)。", 'error');
                 return;
             }
 
@@ -721,7 +809,10 @@
             const leaveData = {
                 studentName,
                 parentName,
-                classSeat: classSeat || 'N/A',
+                // 使用組合後的字串存入 classSeat 欄位
+                classSeat: classSeatCombined, 
+                classNumber: classNumber, // 儲存班級號碼 (用於過濾)
+                seatNumber: seatNumber,   // 儲存座號 (用於過濾)
                 contactPhone: contactPhone || 'N/A',
                 startDate,
                 startPeriod, 
@@ -730,6 +821,7 @@
                 days, 
                 type: leaveType,
                 reason,
+                supportingDocInfo: fileMetadata, // 儲存文件元數據
                 submitterId: userId,
                 timestamp: new Date(),
             };
@@ -748,6 +840,8 @@
                 document.getElementById('startPeriod').value = "1"; 
                 document.getElementById('endPeriod').value = "7";
                 document.getElementById('days').value = 1;
+                document.getElementById('seatNumber').value = ""; // 重設座號選單
+                document.getElementById('classNumber').value = ""; // 重設班級輸入
 
             } catch (error) {
                 console.error("提交請假申請失敗:", error);
@@ -760,9 +854,15 @@
         // -------------------------------------------------------------------------
 
         const filterStudentInput = document.getElementById('filterStudent');
+        // 新增篩選器 DOM 引用
+        const filterClassInput = document.getElementById('filterClass');
+        const filterSeatInput = document.getElementById('filterSeat');
         const filterTypeSelect = document.getElementById('filterType');
 
+        // 註冊所有篩選輸入的事件監聽器
         filterStudentInput.addEventListener('input', renderHistoryTable);
+        filterClassInput.addEventListener('input', renderHistoryTable); // 監聽班級輸入
+        filterSeatInput.addEventListener('input', renderHistoryTable);   // 監聽座號輸入
         filterTypeSelect.addEventListener('change', renderHistoryTable);
 
         /**
@@ -772,22 +872,40 @@
             const tbody = document.getElementById('historyTableBody');
             const noRecordsMessage = document.getElementById('noRecordsMessage');
             
-            const studentFilter = filterStudentInput.value.toLowerCase();
+            // 獲取所有篩選條件的值
+            const studentFilter = filterStudentInput.value.toLowerCase().trim();
+            const classFilter = filterClassInput.value.trim(); // e.g., '601'
+            const seatFilter = filterSeatInput.value.trim();   // e.g., '15'
             const typeFilter = filterTypeSelect.value;
 
             // 1. 過濾資料
             const filteredRecords = leaveRecords.filter(record => {
-                const studentMatch = record.studentName.toLowerCase().includes(studentFilter) || 
-                                     record.classSeat.toLowerCase().includes(studentFilter);
+                
+                // 學生姓名篩選 (關鍵字搜尋)
+                const studentMatch = record.studentName.toLowerCase().includes(studentFilter); 
+                
+                // 班級號碼篩選 (精確或部分匹配)
+                const recordClass = record.classNumber || '';
+                const classMatch = !classFilter || recordClass.includes(classFilter);
+                
+                // 座號篩選 (精確或部分匹配)
+                // 由於座號是數字，如果用戶輸入 '1'，會匹配 '1' 和 '10' 到 '19'。
+                const recordSeat = record.seatNumber || ''; 
+                const seatMatch = !seatFilter || recordSeat.includes(seatFilter);
+                
+                // 假別篩選
                 const typeMatch = !typeFilter || record.type === typeFilter;
-                return studentMatch && typeMatch;
+                
+                // 所有條件都必須符合
+                return studentMatch && classMatch && seatMatch && typeMatch;
             });
             
             // 2. 處理無紀錄情況
             if (filteredRecords.length === 0) {
+                // 更新 colspan 為 9 (新增操作欄位)
                 tbody.innerHTML = `
                     <tr>
-                        <td colspan="7" class="px-6 py-4 text-center text-gray-500">
+                        <td colspan="9" class="px-6 py-4 text-center text-gray-500">
                             ${leaveRecords.length === 0 ? '目前沒有請假紀錄。' : '無符合篩選條件的紀錄。'}
                         </td>
                     </tr>`;
@@ -820,7 +938,7 @@
                     dateRange = `${record.startDate}${startDetail} ~ ${record.endDate}${endDetail}`;
                 }
 
-                const reasonSummary = record.reason.length > 30 ? record.reason.substring(0, 30) + '...' : record.reason;
+                const reasonSummary = record.reason.length > 20 ? record.reason.substring(0, 20) + '...' : record.reason;
                 const submitTime = record.timestamp.toDate().toLocaleDateString('zh-TW', {
                     hour: '2-digit', minute: '2-digit', month: '2-digit', day: '2-digit'
                 });
@@ -830,6 +948,20 @@
                 if (record.type === '病假') typeColor = 'bg-red-100 text-red-700';
                 else if (record.type === '事假') typeColor = 'bg-yellow-100 text-yellow-700';
                 else if (record.type === '公假') typeColor = 'bg-blue-100 text-blue-700';
+                
+                // 佐證文件狀態標記
+                let fileStatusBadge = '<span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-600">無文件</span>';
+                if (record.supportingDocInfo && record.supportingDocInfo !== '無佐證文件') {
+                    fileStatusBadge = '<span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-700">✅ 已上傳元數據</span>';
+                }
+
+                // 刪除按鈕
+                const deleteButton = `
+                    <button onclick="showDeleteConfirm('${record.id}', '${record.studentName}', '${record.classSeat}', '${record.type}')" 
+                            class="text-red-500 hover:text-red-700 p-1 rounded transition duration-150 border border-red-300 hover:border-red-500 text-xs font-medium">
+                        刪除
+                    </button>
+                `;
 
                 return `
                     <tr class="hover:bg-gray-50 transition duration-100">
@@ -846,17 +978,65 @@
                         </td>
                         <td class="px-3 py-3 whitespace-nowrap text-sm text-gray-500 hidden sm:table-cell">${record.parentName}</td>
                         <td class="px-3 py-3 text-sm text-gray-500 max-w-xs overflow-hidden">${reasonSummary}</td>
+                        <td class="px-3 py-3 whitespace-nowrap">${fileStatusBadge}</td>
                         <td class="px-3 py-3 whitespace-nowrap text-xs text-gray-400">${submitTime}</td>
+                        <td class="px-3 py-3 whitespace-nowrap">${deleteButton}</td> <!-- 操作按鈕 -->
                     </tr>
                 `;
             }).join('');
         }
         
+        // -------------------------------------------------------------------------
+        // 刪除操作邏輯 (教師端)
+        // -------------------------------------------------------------------------
+
+        /** 顯示刪除二次確認 Modal */
+        function showDeleteConfirm(recordId, studentName, classSeat, type) {
+            if (!isTeacherAuthenticated) {
+                showMessage("請先進行教師身份驗證。", 'error');
+                return;
+            }
+            
+            const details = document.getElementById('deleteRecordDetails');
+            const recordIdInput = document.getElementById('recordIdToDelete');
+            const modal = document.getElementById('deleteConfirmModal');
+            
+            // 填充確認訊息
+            details.innerHTML = `您確定要刪除 **${studentName}** (${classSeat}) 於 **${type}** 的這筆請假紀錄嗎？<br>此操作無法復原。`;
+            recordIdInput.value = recordId;
+            
+            modal.classList.remove('hidden');
+        }
+
+        /** 確認刪除操作並執行 Firestore 刪除 */
+        async function confirmDeletion() {
+            const recordId = document.getElementById('recordIdToDelete').value;
+            document.getElementById('deleteConfirmModal').classList.add('hidden'); // 隱藏 Modal
+
+            if (!recordId || !db) {
+                showMessage("刪除錯誤：紀錄 ID 或資料庫未準備好。", 'error');
+                return;
+            }
+            
+            try {
+                // 刪除 Firestore 文件
+                const docRef = firebase.doc(db, COLLECTION_PATH, recordId);
+                await firebase.deleteDoc(docRef);
+                
+                showMessage("🎉 紀錄已成功刪除。", 'success');
+                // onSnapshot 會自動更新表格，無需手動重新渲染
+            } catch (error) {
+                console.error("刪除紀錄失敗:", error);
+                showMessage(`刪除失敗：權限不足或網路錯誤。錯誤碼：${error.code || 'UNKNOWN'}`, 'error');
+            }
+        }
+        
         // 讓全域函數可以在 HTML 標籤中被調用
         window.switchView = switchView; 
         window.checkPassword = checkPassword;
+        window.showDeleteConfirm = showDeleteConfirm; // 新增
+        window.confirmDeletion = confirmDeletion;     // 新增
         
     </script>
 </body>
 </html>
-
