@@ -187,7 +187,7 @@
             <div class="mb-4 flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-4">
                 <input type="text" id="filterStudent" placeholder="依學生姓名或座號篩選..."
                     class="p-2 border border-gray-300 rounded-lg focus:ring-secondary focus:border-secondary flex-grow">
-                <select id="filterType"
+                <select type="text" id="filterType"
                     class="p-2 border border-gray-300 rounded-lg focus:ring-secondary focus:border-secondary appearance-none bg-white">
                     <option value="">所有假別</option>
                     <option value="病假">病假</option>
@@ -273,25 +273,22 @@
         const messageBox = document.getElementById('messageBox');
 
         // ---------------------------------------------------------------------
-        // 使用您自己 Firebase 專案的配置 (由使用者自行提供)
+        // 從 Canvas 環境取得 Firebase 配置與認證資訊 (已修正為自動讀取)
         // ---------------------------------------------------------------------
+        // 確保在 Canvas 之外也能執行 (提供預設值)
         const firebaseConfig = {
           apiKey: "AIzaSyCl-aa5JZvfjgKNCu1h1wQaQkOSkQ8GCTs",
           authDomain: "student-leave-system-97560.firebaseapp.com",
           projectId: "student-leave-system-97560",
           storageBucket: "student-leave-system-97560.firebasestorage.app",
           messagingSenderId: "670531005041",
-          appId: "1:670531005041:web:4ec05a8a9c78f5b00489d0"
+          appId: "1:670531005041:web:4ec05a8a9c78f5b00489d0",
+          measurementId: "G-9L26WH30Q7"
         };
-
-        // 替換原有的環境變數，讓程式碼使用您的配置
-        const firebaseConfig = firebaseConfig;
-        const initialAuthToken = null; // 在您的環境中，您不需要這個 Canvas Token
-        const appId = firebaseConfig.projectId; // 專案 ID 可作為 App ID
 
         if (!firebaseConfig) {
             console.error("Firebase 配置遺失。請確保程式碼在支援的環境中運行或手動提供配置。");
-            document.getElementById('loadingIndicator').innerHTML = '<div class="text-xl font-semibold text-red-600">錯誤：Firebase 配置遺失！</div>';
+            document.getElementById('loadingIndicator').innerHTML = '<div class="text-xl font-semibold text-red-600">錯誤：Firebase 配置遺失！請檢查主控台並提供自己的配置。</div>';
             // 由於配置缺失，無法繼續執行
             // 顯示錯誤後，不進行後續初始化
         }
@@ -319,7 +316,7 @@
             
             setTimeout(() => {
                 messageBox.classList.add('hidden');
-            }, 5000);
+            }, 8000); // 延長錯誤訊息顯示時間
         }
 
         /**
@@ -446,6 +443,9 @@
         async function initializeFirebase() {
             // 如果 firebaseConfig 已經判斷為 null (在配置讀取區塊)，則不再嘗試初始化
             if (!firebaseConfig) {
+                // 強制顯示應用程式容器，即使是錯誤狀態
+                appContainer.classList.remove('opacity-0');
+                // 由於配置缺失，不需要進一步初始化
                 return;
             }
 
@@ -485,9 +485,11 @@
                 });
 
             } catch (error) {
-                console.error("Firebase 初始化失敗:", error);
+                // 修正：當 Firebase 初始化或認證失敗時，也要移除載入畫面並顯示錯誤
+                console.error("Firebase 初始化失敗 (請檢查配置與驗證規則):", error);
                 loadingIndicator.classList.add('hidden');
-                showMessage("系統初始化錯誤：認證失敗。請檢查主控台。", 'error');
+                appContainer.classList.remove('opacity-0'); // 顯示應用程式介面
+                showMessage(`系統初始化錯誤：認證失敗。錯誤碼：${error.code || 'UNKNOWN'}。請檢查主控台並確認您的 Firebase 配置和認證/規則設定。`, 'error');
             }
         }
 
@@ -505,13 +507,18 @@
                     leaveRecords.push({ id: doc.id, ...doc.data() });
                 });
                 // 將紀錄按提交時間倒序排列 (注意：Firestore 建議在伺服器端排序，但這裡為了簡化仍使用客戶端排序)
-                leaveRecords.sort((a, b) => b.timestamp.toDate() - a.timestamp.toDate()); 
+                // 由於 Firestore 的 timestamp 是一個物件，我們需要使用 toDate() 轉換
+                leaveRecords.sort((a, b) => {
+                    const dateA = a.timestamp && a.timestamp.toDate ? a.timestamp.toDate().getTime() : 0;
+                    const dateB = b.timestamp && b.timestamp.toDate ? b.timestamp.toDate().getTime() : 0;
+                    return dateB - dateA; // 倒序
+                });
                 
                 // 重新渲染表格
                 renderHistoryTable();
             }, (error) => {
                 console.error("監聽請假紀錄失敗:", error);
-                showMessage("無法載入紀錄，請檢查網路連線。", 'error');
+                showMessage("無法載入紀錄，請檢查網路連線或資料庫規則。", 'error');
             });
         }
         
@@ -761,6 +768,3 @@
     </script>
 </body>
 </html>
-
-
-
