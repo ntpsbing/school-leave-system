@@ -273,14 +273,22 @@
         const messageBox = document.getElementById('messageBox');
 
         // ---------------------------------------------------------------------
-        // 從 Canvas 環境取得 Firebase 配置與認證資訊 (已修正為自動讀取)
+        // 使用您自己 Firebase 專案的配置 (由使用者自行提供)
         // ---------------------------------------------------------------------
-        // 確保在 Canvas 之外也能執行 (提供預設值)
-        const firebaseConfig = typeof __firebase_config !== 'undefined' 
-            ? JSON.parse(__firebase_config) 
-            : null;
-        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const firebaseConfig = {
+          apiKey: "AIzaSyCl-aa5JZvfjgKNCu1h1wQaQkOSkQ8GCTs",
+          authDomain: "student-leave-system-97560.firebaseapp.com",
+          projectId: "student-leave-system-97560",
+          storageBucket: "student-leave-system-97560.firebasestorage.app",
+          messagingSenderId: "670531005041",
+          appId: "1:670531005041:web:4ec05a8a9c78f5b00489d0",
+          measurementId: "G-9L26WH30Q7"
+        };
+
+        // 替換原有的環境變數，讓程式碼使用您的配置
+        const firebaseConfig = yourOwnFirebaseConfig;
+        const initialAuthToken = null; // 在您的環境中，您不需要這個 Canvas Token
+        const appId = firebaseConfig.projectId; // 專案 ID 可作為 App ID
 
         if (!firebaseConfig) {
             console.error("Firebase 配置遺失。請確保程式碼在支援的環境中運行或手動提供配置。");
@@ -754,3 +762,4 @@
     </script>
 </body>
 </html>
+
